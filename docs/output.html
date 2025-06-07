@@ -205,6 +205,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Convert to a tibble for ease of use</span></span>
 <span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>census_1 <span class="ot">&lt;-</span> <span class="fu">as_tibble</span>(census_1)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
+</section>
+<section id="selecting-columns" class="level3">
+<h3 class="anchored" data-anchor-id="selecting-columns">1: Selecting Columns</h3>
 <p>Now that we have some data to work with, we can use the <code>dplyr</code> package to select the columns we care about and take a look to make sure that everything got read in properly.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Select Area_name, STCOU, and any column ending with a D</span></span>
@@ -226,7 +229,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 #   EDU010195D &lt;int&gt;, EDU010196D &lt;int&gt;</code></pre>
 </div>
 </div>
-<p>Looks good! However, there is some information stored in the column names that we care about in our data, and it isn’t exactly easy to analyze that data when it’s stored in the name. As such, we are going to pivot this data into a longer dataframe.</p>
+<p>Looks good!</p>
+</section>
+<section id="pivoting-data" class="level3">
+<h3 class="anchored" data-anchor-id="pivoting-data">2: Pivoting Data</h3>
+<p>There is some information stored in the column names that we care about in our data, and it isn’t exactly easy to analyze that data when it’s stored in the name. As such, we are going to pivot this data into a longer dataframe.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Pivot longer so that we can access data stored in some column names</span></span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>census_1_long <span class="ot">&lt;-</span> census_1_small <span class="sc">|&gt;</span></span>
@@ -247,7 +254,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 5 UNITED STATES     0 EDU010191D 41385442</code></pre>
 </div>
 </div>
-<p>Looks good! Notice how there is only one measurement per row now. Let’s take a closer look at the <code>enrollment</code> column now. According to the data information sheet provided, the first three letters and first four numbers represent the type of survey that was completed. For example, row one has the value <code>EDU0101</code> which represents school enrollment. The next two digits represent the year the survey was taken. Using the first row as an example again, we see that those two digits are <code>87</code>, meaning that the survey was taken in 1987. We can parse this column to get some meaningful data year-over-year.</p>
+<p>Notice how there is only one measurement per row now!</p>
+</section>
+<section id="parsing-strings" class="level3">
+<h3 class="anchored" data-anchor-id="parsing-strings">3: Parsing Strings</h3>
+<p>Let’s take a closer look at the <code>enrollment</code> column now. According to the data information sheet provided, the first three letters and first four numbers represent the type of survey that was completed. For example, row one has the value <code>EDU0101</code> which represents school enrollment. The next two digits represent the year the survey was taken. Using the first row as an example again, we see that those two digits are <code>87</code>, meaning that the survey was taken in 1987. We can parse this column to get some meaningful data year-over-year.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Parse the enrollment column:</span></span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="co">#enrollment - first three letters plus first four digits (ex. EDU0101)</span></span>
@@ -273,6 +284,83 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 3 UNITED STATES     0 EDU0101    40317775  1989
 4 UNITED STATES     0 EDU0101    40737600  1990
 5 UNITED STATES     0 EDU0101    41385442  1991</code></pre>
+</div>
+</div>
+<p>Now we have two columns to explain the survey information in a more intuitive manner.</p>
+</section>
+<section id="splitting-the-dataset" class="level3">
+<h3 class="anchored" data-anchor-id="splitting-the-dataset">4: Splitting the Dataset</h3>
+<p>Note that when we first imported the dataset, we saw that there was data for the country as a whole, as well as individual states as well as the counties within the states. If we wished to analyze the data, it may make more sense to be able to easily subset it by county and non-county data so we can get better insights. As such, let’s split the data into a county set and a non-county set. We can use <code>dplyr</code>’s <code>slice()</code> function to accomplish this, using an expression provided that returns the indices of all rows that match a given condition!</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Filter tibble into two separate tibbles using county as the identifier</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>county_1 <span class="ot">&lt;-</span> census_1_long_updated <span class="sc">|&gt;</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice</span>(<span class="fu">grep</span>(<span class="at">pattern =</span> <span class="st">", </span><span class="sc">\\</span><span class="st">w</span><span class="sc">\\</span><span class="st">w"</span>, Area_name))</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="co">#We can invert using the 'invert' argument in grep() as well</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>non_county_1 <span class="ot">&lt;-</span> census_1_long_updated <span class="sc">|&gt;</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice</span>(<span class="fu">grep</span>(<span class="at">pattern =</span> <span class="st">", </span><span class="sc">\\</span><span class="st">w</span><span class="sc">\\</span><span class="st">w"</span>, Area_name, <span class="at">invert =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a><span class="co">#Add the custom classes to the tibbles for future use</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a><span class="fu">class</span>(county_1) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"county"</span>, <span class="fu">class</span>(county_1))</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a><span class="fu">class</span>(non_county_1) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"state"</span>, <span class="fu">class</span>(non_county_1))</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(county_1, <span class="at">n =</span> <span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 10 × 5
+   Area_name   STCOU enrollment count  year
+   &lt;chr&gt;       &lt;int&gt; &lt;chr&gt;      &lt;int&gt; &lt;dbl&gt;
+ 1 Autauga, AL  1001 EDU0101     6829  1987
+ 2 Autauga, AL  1001 EDU0101     6900  1988
+ 3 Autauga, AL  1001 EDU0101     6920  1989
+ 4 Autauga, AL  1001 EDU0101     6847  1990
+ 5 Autauga, AL  1001 EDU0101     7008  1991
+ 6 Autauga, AL  1001 EDU0101     7137  1992
+ 7 Autauga, AL  1001 EDU0101     7152  1993
+ 8 Autauga, AL  1001 EDU0101     7381  1994
+ 9 Autauga, AL  1001 EDU0101     7568  1995
+10 Autauga, AL  1001 EDU0101     7834  1996</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(non_county_1, <span class="at">n =</span> <span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 10 × 5
+   Area_name     STCOU enrollment    count  year
+   &lt;chr&gt;         &lt;int&gt; &lt;chr&gt;         &lt;int&gt; &lt;dbl&gt;
+ 1 UNITED STATES     0 EDU0101    40024299  1987
+ 2 UNITED STATES     0 EDU0101    39967624  1988
+ 3 UNITED STATES     0 EDU0101    40317775  1989
+ 4 UNITED STATES     0 EDU0101    40737600  1990
+ 5 UNITED STATES     0 EDU0101    41385442  1991
+ 6 UNITED STATES     0 EDU0101    42088151  1992
+ 7 UNITED STATES     0 EDU0101    42724710  1993
+ 8 UNITED STATES     0 EDU0101    43369917  1994
+ 9 UNITED STATES     0 EDU0101    43993459  1995
+10 UNITED STATES     0 EDU0101    44715737  1996</code></pre>
+</div>
+</div>
+</section>
+<section id="subsetting-strings-in-the-county-data" class="level3">
+<h3 class="anchored" data-anchor-id="subsetting-strings-in-the-county-data">5: Subsetting Strings in the County Data</h3>
+<p>We may want to subset by state in our analysis, so let’s subset the county data to separate the county’s name and state by using the comma as a delimiter.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Split the county name and state using , as a delimiter</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>county_1_split <span class="ot">&lt;-</span> county_1 <span class="sc">|&gt;</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># separate() indicates that it is superseded per help file</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Using separate_wider_delim() in favor of separate()</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">separate_wider_delim</span>(Area_name, <span class="st">","</span>, <span class="at">names =</span> <span class="fu">c</span>(<span class="st">"county"</span>, <span class="st">"state"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Trim the whitespace on the state column</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">state =</span> <span class="fu">trimws</span>(state))</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a><span class="co">#View results</span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(county_1_split, <span class="at">n =</span> <span class="dv">5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 5 × 6
+  county  state STCOU enrollment count  year
+  &lt;chr&gt;   &lt;chr&gt; &lt;int&gt; &lt;chr&gt;      &lt;int&gt; &lt;dbl&gt;
+1 Autauga AL     1001 EDU0101     6829  1987
+2 Autauga AL     1001 EDU0101     6900  1988
+3 Autauga AL     1001 EDU0101     6920  1989
+4 Autauga AL     1001 EDU0101     6847  1990
+5 Autauga AL     1001 EDU0101     7008  1991</code></pre>
 </div>
 </div>
 

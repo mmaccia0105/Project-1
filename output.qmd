@@ -31,6 +31,8 @@ census_1 <- read.csv(file = ".\\data\\EDU01a.csv", header = TRUE)
 census_1 <- as_tibble(census_1)
 ```
 
+### 1: Selecting Columns
+
 Now that we have some data to work with, we can use the `dplyr` package to select the columns we care about and take a look to make sure that everything got read in properly.
 
 ```{r}
@@ -42,7 +44,11 @@ census_1_small <- census_1 |>
 head(census_1_small, n = 5)
 ```
 
-Looks good! However, there is some information stored in the column names that we care about in our data, and it isn't exactly easy to analyze that data when it's stored in the name. As such, we are going to pivot this data into a longer dataframe.
+Looks good!
+
+### 2: Pivoting Data
+
+There is some information stored in the column names that we care about in our data, and it isn't exactly easy to analyze that data when it's stored in the name. As such, we are going to pivot this data into a longer dataframe.
 
 ```{r}
 #Pivot longer so that we can access data stored in some column names
@@ -55,7 +61,11 @@ census_1_long <- census_1_small |>
 head(census_1_long, n = 5)
 ```
 
-Looks good! Notice how there is only one measurement per row now. Let's take a closer look at the `enrollment` column now. According to the data information sheet provided, the first three letters and first four numbers represent the type of survey that was completed. For example, row one has the value `EDU0101` which represents school enrollment. The next two digits represent the year the survey was taken. Using the first row as an example again, we see that those two digits are `87`, meaning that the survey was taken in 1987. We can parse this column to get some meaningful data year-over-year.
+Notice how there is only one measurement per row now!
+
+### 3: Parsing Strings
+
+Let's take a closer look at the `enrollment` column now. According to the data information sheet provided, the first three letters and first four numbers represent the type of survey that was completed. For example, row one has the value `EDU0101` which represents school enrollment. The next two digits represent the year the survey was taken. Using the first row as an example again, we see that those two digits are `87`, meaning that the survey was taken in 1987. We can parse this column to get some meaningful data year-over-year.
 
 ```{r}
 #Parse the enrollment column:
@@ -73,4 +83,44 @@ census_1_long_updated <- census_1_long |>
 
 #View results!
 head(census_1_long_updated, n = 5)
+```
+
+Now we have two columns to explain the survey information in a more intuitive manner.
+
+### 4: Splitting the Dataset
+
+Note that when we first imported the dataset, we saw that there was data for the country as a whole, as well as individual states as well as the counties within the states. If we wished to analyze the data, it may make more sense to be able to easily subset it by county and non-county data so we can get better insights. As such, let's split the data into a county set and a non-county set. We can use `dplyr`'s `slice()` function to accomplish this, using an expression provided that returns the indices of all rows that match a given condition!
+
+```{r}
+#Filter tibble into two separate tibbles using county as the identifier
+county_1 <- census_1_long_updated |>
+  slice(grep(pattern = ", \\w\\w", Area_name))
+
+#We can invert using the 'invert' argument in grep() as well
+non_county_1 <- census_1_long_updated |>
+  slice(grep(pattern = ", \\w\\w", Area_name, invert = TRUE))
+
+#Add the custom classes to the tibbles for future use
+class(county_1) <- c("county", class(county_1))
+class(non_county_1) <- c("state", class(non_county_1))
+
+head(county_1, n = 10)
+head(non_county_1, n = 10)
+```
+
+### 5: Subsetting Strings in the County Data
+
+We may want to subset by state in our analysis, so let's subset the county data to separate the county's name and state by using the comma as a delimiter.
+
+```{r}
+#Split the county name and state using , as a delimiter
+county_1_split <- county_1 |>
+  # separate() indicates that it is superseded per help file
+  # Using separate_wider_delim() in favor of separate()
+  separate_wider_delim(Area_name, ",", names = c("county", "state")) |>
+  # Trim the whitespace on the state column
+  mutate(state = trimws(state))
+
+#View results
+head(county_1_split, n = 5)
 ```
