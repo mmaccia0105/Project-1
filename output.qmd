@@ -1,0 +1,76 @@
+---
+title: "Processing and Manipulating Data"
+author: "Max Campbell and Mike Maccia"
+format: html
+editor: visual
+---
+
+```{r}
+#|message=FALSE
+#|warning=FALSE
+#|results='hide'
+#|echo=FALSE
+
+# Load in necessary packages here!
+library(tidyverse)
+```
+
+## Data Processing
+
+### First Steps: Importing Data
+
+Our overall goal in this project is to process and manipulate data using common techniques and R packages. In this instance, we are using data from the 2010 census as an example! The first step in any data science project is to read in the data from wherever we are importing it from. In this case, we have some comma separated value (csv) files. Luckily, R makes this pretty easy with the `read.csv()` function!
+
+```{r}
+#|message=FALSE
+
+# Read in the first dataset using read.csv
+census_1 <- read.csv(file = ".\\data\\EDU01a.csv", header = TRUE)
+
+# Convert to a tibble for ease of use
+census_1 <- as_tibble(census_1)
+```
+
+Now that we have some data to work with, we can use the `dplyr` package to select the columns we care about and take a look to make sure that everything got read in properly.
+
+```{r}
+# Select Area_name, STCOU, and any column ending with a D
+census_1_small <- census_1 |>
+  select(Area_name, STCOU, ends_with("D"))
+
+#View our selection!
+head(census_1_small, n = 5)
+```
+
+Looks good! However, there is some information stored in the column names that we care about in our data, and it isn't exactly easy to analyze that data when it's stored in the name. As such, we are going to pivot this data into a longer dataframe.
+
+```{r}
+#Pivot longer so that we can access data stored in some column names
+census_1_long <- census_1_small |>
+  pivot_longer(cols = 3:12,
+               names_to = "enrollment",
+               values_to = "count")
+
+#View results!
+head(census_1_long, n = 5)
+```
+
+Looks good! Notice how there is only one measurement per row now. Let's take a closer look at the `enrollment` column now. According to the data information sheet provided, the first three letters and first four numbers represent the type of survey that was completed. For example, row one has the value `EDU0101` which represents school enrollment. The next two digits represent the year the survey was taken. Using the first row as an example again, we see that those two digits are `87`, meaning that the survey was taken in 1987. We can parse this column to get some meaningful data year-over-year.
+
+```{r}
+#Parse the enrollment column:
+#enrollment - first three letters plus first four digits (ex. EDU0101)
+#year - next two digits (ex. 87 becomes 1987)
+census_1_long_updated <- census_1_long |>
+  mutate(year = substr(enrollment, 8, 9),
+         enrollment = substr(enrollment, 1, 7)) |>
+  #Add 1900 (or 2000) to the year column to get the YYYY instead of YY
+  mutate(year = case_when(
+    as.numeric(year) >= 87 ~ 1900 + as.numeric(year),
+    .default = 2000 + as.numeric(year)
+    )
+  )
+
+#View results!
+head(census_1_long_updated, n = 5)
+```
