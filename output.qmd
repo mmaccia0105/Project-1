@@ -54,7 +54,7 @@ There is some information stored in the column names that we care about in our d
 #Pivot longer so that we can access data stored in some column names
 census_1_long <- census_1_small |>
   pivot_longer(cols = 3:12,
-               names_to = "enrollment",
+               names_to = "survey_ID",
                values_to = "count")
 
 #View results!
@@ -65,15 +65,15 @@ Notice how there is only one measurement per row now!
 
 ### 3: Parsing Strings
 
-Let's take a closer look at the `enrollment` column now. According to the data information sheet provided, the first three letters and first four numbers represent the type of survey that was completed. For example, row one has the value `EDU0101` which represents school enrollment. The next two digits represent the year the survey was taken. Using the first row as an example again, we see that those two digits are `87`, meaning that the survey was taken in 1987. We can parse this column to get some meaningful data year-over-year.
+Let's take a closer look at the `survey_ID` column now. According to the data information sheet provided, the first three letters and first four numbers represent the type of survey that was completed. For example, row one has the value `EDU0101` which represents school survey_ID. The next two digits represent the year the survey was taken. Using the first row as an example again, we see that those two digits are `87`, meaning that the survey was taken in 1987. We can parse this column to get some meaningful data year-over-year.
 
 ```{r}
-#Parse the enrollment column:
-#enrollment - first three letters plus first four digits (ex. EDU0101)
+#Parse the survey_ID column:
+#survey_ID - first three letters plus first four digits (ex. EDU0101)
 #year - next two digits (ex. 87 becomes 1987)
 census_1_long_updated <- census_1_long |>
-  mutate(year = substr(enrollment, 8, 9),
-         enrollment = substr(enrollment, 1, 7)) |>
+  mutate(year = substr(survey_ID, 8, 9),
+         survey_ID = substr(survey_ID, 1, 7)) |>
   #Add 1900 (or 2000) to the year column to get the YYYY instead of YY
   mutate(year = case_when(
     as.numeric(year) >= 87 ~ 1900 + as.numeric(year),
@@ -108,7 +108,7 @@ head(county_1, n = 10)
 head(non_county_1, n = 10)
 ```
 
-### 5: Subsetting Strings in the County Data
+### 5: Splitting Strings in the County Data
 
 We may want to subset by state in our analysis, so let's subset the county data to separate the county's name and state by using the comma as a delimiter.
 
@@ -123,4 +123,62 @@ county_1_split <- county_1 |>
 
 #View results
 head(county_1_split, n = 5)
+```
+
+### 6: Designating Regions in Non-County Data
+
+Similar to what we did in the county data above, we can describe the non-county data by larger groups. For the county data, this was the state each county was located in. For the non-county data, it will be the the divisions described by the [Census Bureau's designation](https://en.wikipedia.org/wiki/List_of_regions_of_the_United_States). In other words, there are nine defined divisions that the Census Bureau that could be useful for our analysis. In order to indicate divisions we will have to use the `case_when` function in conjunction with the `%in%` operator to check and see if each entry is contained within a specific list of states belonging to a division.
+
+```{r}
+#Create string vectors of the states for clarity in the mutate call
+ne <- c("CONNECTICUT", "MAINE", "MASSACHUSETTS", 
+        "NEW HAMPSHIRE", "RHODE ISLAND", "VERMONT")
+ma <- c("NEW JERSEY", "NEW YORK", "PENNSYLVANIA")
+enc <- c("ILLINOIS", "INDIANA", "MICHIGAN", "OHIO", "WISCONSIN")
+wnc <- c("IOWA", "KANSAS", "MINNESOTA", 
+         "MISSOURI", "NEBRASKA", "NORTH DAKOTA", 
+         "SOUTH DAKOTA")
+sa <- c("DELAWARE", "DISTRICT OF COLUMBIA", "FLORIDA",
+        "GEORGIA", "MARYLAND", "NORTH CAROLINA",
+        "SOUTH CAROLINA", "VIRGINIA", "WEST VIRGINIA")
+esc <- c("ALABAMA", "KENTUCKY", "MISSISSIPPI", "TENNESSEE")
+wsc <- c("ARKANSAS", "LOUISIANA", "OKLAHOMA", "TEXAS")
+mtn <- c("ARIZONA", "COLORADO", "IDAHO", 
+         "MONTANA", "NEVADA", "NEW MEXICO", 
+         "UTAH", "WYOMING")
+pac <- c("ALASKA", "CALIFORNIA", "HAWAII", "OREGON", "WASHINGTON")
+
+# Add the division variable to indicate Census-designated divisions
+non_county_1_div <- non_county_1 |>
+  mutate(division = case_when(
+    Area_name %in% ne ~ "New England",
+    Area_name %in% ma ~ "Mid-Atlantic",
+    Area_name %in% enc ~ "East North Central",
+    Area_name %in% wnc ~ "West North Central",
+    Area_name %in% sa ~ "South Atlantic",
+    Area_name %in% esc ~ "East South Central",
+    Area_name %in% wsc ~ "West South Central",
+    Area_name %in% mtn ~ "Mountain",
+    Area_name %in% pac ~ "Pacific",
+    .default = "ERROR"
+  ))
+
+#View results from the end 
+#since the US data is first and will return ERROR
+tail(non_county_1_div, n = 5)
+```
+
+With that, we've done everything that we'll need to do for our analysis! However, there is one key step that we need to do to make this process easily reproducible.
+
+## Generalizing into Function Calls
+
+This census data has two key characteristics that are relevant right now: the data that is imported follows the same general format, and we want to process the data in several different ways. That is, we want to easily be able to do the same processes without having to do a bunch of copying-and-pasting work. Luckily, we can write our own functions to take care of that!
+
+There will have to be some generalizations made. For example, what if we want to observe data for a different metric? The census takes record of many different aspects of American demographics, and we may be interested in analyzing a different survey one day. Also, the latest observations that we have in the data we read in previously are from 1996, which is almost 30 years ago! We will want to read in some more recent records as well to get a bigger picture on survey_ID data.
+
+So, we will write functions to generalize the processes performed above, and we will write a function to merge datasets in order to congregate our newer and older data in one (well, two, because we want to split the data by county status) data frame!
+
+```{r}
+#---HELPER FUNCTIONS---
+
 ```
