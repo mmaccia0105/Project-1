@@ -70,7 +70,7 @@ Let's take a closer look at the `survey_ID` column now. According to the data in
 #Parse the survey_ID column:
 #survey_ID - first three letters plus first four digits (ex. EDU0101)
 #year - next two digits (ex. 87 becomes 1987)
-census_1_long_updated <- census_1_long |>
+long_updated <- census_1_long |>
   mutate(year = substr(survey_ID, 8, 9),
          survey_ID = substr(survey_ID, 1, 7)) |>
   #Add 1900 (or 2000) to the year column to get the YYYY instead of YY
@@ -81,7 +81,7 @@ census_1_long_updated <- census_1_long |>
   )
 
 #View results!
-head(census_1_long_updated, n = 5)
+head(long_updated, n = 5)
 ```
 
 Now we have two columns to explain the survey information in a more intuitive manner.
@@ -92,11 +92,11 @@ Note that when we first imported the dataset, we saw that there was data for the
 
 ```{r}
 #Filter tibble into two separate tibbles using county as the identifier
-county_1 <- census_1_long_updated |>
+county_1 <- long_updated |>
   slice(grep(pattern = ", \\w\\w", area_name))
 
 #We can invert using the 'invert' argument in grep() as well
-non_county_1 <- census_1_long_updated |>
+non_county_1 <- long_updated |>
   slice(grep(pattern = ", \\w\\w", area_name, invert = TRUE))
 
 #Add the custom classes to the tibbles for future use
