@@ -36,7 +36,8 @@ Now that we have some data to work with, we can use the `dplyr` package to selec
 ```{r}
 # Select Area_name, STCOU, and any column ending with a D
 census_1_small <- census_1 |>
-  select(Area_name, STCOU, ends_with("D"))
+  select(Area_name, STCOU, ends_with("D")) |> 
+    rename(area_name = Area_name) #rename variable
 
 #View our selection!
 head(census_1_small, n = 5)
@@ -92,11 +93,11 @@ Note that when we first imported the dataset, we saw that there was data for the
 ```{r}
 #Filter tibble into two separate tibbles using county as the identifier
 county_1 <- census_1_long_updated |>
-  slice(grep(pattern = ", \\w\\w", Area_name))
+  slice(grep(pattern = ", \\w\\w", area_name))
 
 #We can invert using the 'invert' argument in grep() as well
 non_county_1 <- census_1_long_updated |>
-  slice(grep(pattern = ", \\w\\w", Area_name, invert = TRUE))
+  slice(grep(pattern = ", \\w\\w", area_name, invert = TRUE))
 
 #Add the custom classes to the tibbles for future use
 class(county_1) <- c("county", class(county_1))
@@ -115,7 +116,7 @@ We may want to subset by state in our analysis, so let's subset the county data 
 county_1_split <- county_1 |>
   # separate() indicates that it is superseded per help file
   # Using separate_wider_delim() in favor of separate()
-  separate_wider_delim(Area_name, ",", names = c("county", "state")) |>
+  separate_wider_delim(area_name, ",", names = c("county", "state")) |>
   # Trim the whitespace on the state column
   mutate(state = trimws(state))
 
@@ -149,15 +150,15 @@ pac <- c("ALASKA", "CALIFORNIA", "HAWAII", "OREGON", "WASHINGTON")
 # Add the division variable to indicate Census-designated divisions
 non_county_1_div <- non_county_1 |>
   mutate(division = case_when(
-    Area_name %in% ne ~ "New England",
-    Area_name %in% ma ~ "Mid-Atlantic",
-    Area_name %in% enc ~ "East North Central",
-    Area_name %in% wnc ~ "West North Central",
-    Area_name %in% sa ~ "South Atlantic",
-    Area_name %in% esc ~ "East South Central",
-    Area_name %in% wsc ~ "West South Central",
-    Area_name %in% mtn ~ "Mountain",
-    Area_name %in% pac ~ "Pacific",
+    area_name %in% ne ~ "New England",
+    area_name %in% ma ~ "Mid-Atlantic",
+    area_name %in% enc ~ "East North Central",
+    area_name %in% wnc ~ "West North Central",
+    area_name %in% sa ~ "South Atlantic",
+    area_name %in% esc ~ "East South Central",
+    area_name %in% wsc ~ "West South Central",
+    area_name %in% mtn ~ "Mountain",
+    area_name %in% pac ~ "Pacific",
     .default = "ERROR"
   ))
 
@@ -202,6 +203,7 @@ select_and_pivot <- function(tib, name) {
   #Step 1: Select Columns
   result <- tib |>
     select(Area_name, STCOU, ends_with("D")) |>
+    rename(area_name = Area_name) |> #rename variable  
     pivot_longer(cols = 3:12,
                  names_to = "survey_ID",
                  values_to = name)
@@ -229,10 +231,10 @@ parse_survey_ID <- function(tib) {
 split_by_county_status <- function(tib) {
   #Take the county data and add state column
   result_c <- tib |>
-    slice(grep(pattern = ", \\w\\w", Area_name)) |>
+    slice(grep(pattern = ", \\w\\w", area_name)) |>
     # separate() indicates that it is superseded per help file
     # Using separate_wider_delim() in favor of separate()
-    separate_wider_delim(Area_name, ",", names = c("county", "state")) |>
+    separate_wider_delim(area_name, ",", names = c("county", "state")) |>
     # Trim the whitespace on the state column
     mutate(state = trimws(state))
   
@@ -241,17 +243,17 @@ split_by_county_status <- function(tib) {
   
   #Take the non-county data and add division column
   result_nc <- tib |>
-    slice(grep(pattern = ", \\w\\w", Area_name, invert = TRUE)) |>
+    slice(grep(pattern = ", \\w\\w", area_name, invert = TRUE)) |>
     mutate(division = case_when(
-    Area_name %in% ne ~ "New England",
-    Area_name %in% ma ~ "Mid-Atlantic",
-    Area_name %in% enc ~ "East North Central",
-    Area_name %in% wnc ~ "West North Central",
-    Area_name %in% sa ~ "South Atlantic",
-    Area_name %in% esc ~ "East South Central",
-    Area_name %in% wsc ~ "West South Central",
-    Area_name %in% mtn ~ "Mountain",
-    Area_name %in% pac ~ "Pacific",
+    area_name %in% ne ~ "New England",
+    area_name %in% ma ~ "Mid-Atlantic",
+    area_name %in% enc ~ "East North Central",
+    area_name %in% wnc ~ "West North Central",
+    area_name %in% sa ~ "South Atlantic",
+    area_name %in% esc ~ "East South Central",
+    area_name %in% wsc ~ "West South Central",
+    area_name %in% mtn ~ "Mountain",
+    area_name %in% pac ~ "Pacific",
     .default = "ERROR"
   ))
   
@@ -334,7 +336,7 @@ Looks good on the county side. Let's check the non-counties as well.
 ```{r}
 #View results, from the end this time for the sake of it.
 census[[2]] |>
-  arrange(division, Area_name, year) |>
+  arrange(division, area_name, year) |>
   tail(n = 20)
 ```
 
