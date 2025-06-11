@@ -370,11 +370,6 @@ tib |> #inputting our intended data frame
 }
 ```
 
-```{r}
-#Making sure function is working - REMOVE FROM FINAL REPORT
-plot.state(census_test[[2]],var_name = "enrollment_count")
-```
-
 Next we are going to create a plotting function for the `county` level data. The goal of this function will be for the user to be able to input a state of interest using the 2-letter abbreviated (the default value is NC), determine whether the `top` or `bottom` most counties are the target (default of `top`), and finally an instruction to determine how many of the 'top' or bottom most counties should be investigated (default of 5).
 
 ```{r}
@@ -432,16 +427,6 @@ ggplot(plot_data, aes(x = year, y= get(var_name), color = county)) +
          guides(color= guide_legend(ncol = 2))
 
 }
-```
-
-```{r}
-#REMOVE FROM FINAL REPORT
-plot.county(census_test[[1]],var_name = "enrollment_count", 
-                        state.name="WA", 
-                        top_bottom = "bottom", 
-                        n_counties = 4)
-
-
 ```
 
 ## Demonstrating our Functions to Put it Together
