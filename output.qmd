@@ -1,7 +1,7 @@
 ---
 title: "Processing and Manipulating Data"
 author: "Max Campbell and Mike Maccia"
-format: html
+format: pdf
 editor: visual
 ---
 
@@ -23,7 +23,8 @@ Our overall goal in this project is to process and manipulate data using common 
 #|message=FALSE
 
 # Read in the first dataset using read.csv
-census_1 <- read.csv(file = "https://www4.stat.ncsu.edu/~online/datasets/EDU01a.csv", header = TRUE)
+census_1 <- read.csv(file = "https://www4.stat.ncsu.edu/~online/datasets/EDU01a.csv", 
+                     header = TRUE)
 
 # Convert to a tibble for ease of use
 census_1 <- as_tibble(census_1)
@@ -92,19 +93,19 @@ Note that when we first imported the dataset, we saw that there was data for the
 
 ```{r}
 #Filter tibble into two separate tibbles using county as the identifier
-county_1 <- long_updated |>
+county_tibble <- long_updated |>
   slice(grep(pattern = ", \\w\\w", area_name))
 
 #We can invert using the 'invert' argument in grep() as well
-non_county_1 <- long_updated |>
+state_tibble <- long_updated |>
   slice(grep(pattern = ", \\w\\w", area_name, invert = TRUE))
 
 #Add the custom classes to the tibbles for future use
-class(county_1) <- c("county", class(county_1))
-class(non_county_1) <- c("state", class(non_county_1))
+class(county_tibble) <- c("county", class(county_tibble))
+class(state_tibble) <- c("state", class(state_tibble))
 
-head(county_1, n = 10)
-head(non_county_1, n = 10)
+head(county_tibble, n = 10)
+head(state_tibble, n = 10)
 ```
 
 ### 5: Splitting Strings in the County Data
@@ -113,7 +114,7 @@ We may want to subset by state in our analysis, so let's subset the county data 
 
 ```{r}
 #Split the county name and state using , as a delimiter
-county_1_split <- county_1 |>
+county_1_split <- county_tibble |>
   # separate() indicates that it is superseded per help file
   # Using separate_wider_delim() in favor of separate()
   separate_wider_delim(area_name, ",", names = c("county", "state")) |>
@@ -148,7 +149,7 @@ mtn <- c("ARIZONA", "COLORADO", "IDAHO",
 pac <- c("ALASKA", "CALIFORNIA", "HAWAII", "OREGON", "WASHINGTON")
 
 # Add the division variable to indicate Census-designated divisions
-non_county_1_div <- non_county_1 |>
+non_county_1_div <- state_tibble |>
   mutate(division = case_when(
     area_name %in% ne ~ "New England",
     area_name %in% ma ~ "Mid-Atlantic",
@@ -315,11 +316,11 @@ Now that we've written our functions, all that's left to do is call them. If eve
 
 ```{r}
 #Call the functions we just made!
-list1 <- process_census_data(url = "https://www4.stat.ncsu.edu/~online/datasets/EDU01a.csv", survey_stat_name = "enrollment_count")
-list2 <- process_census_data(url = "https://www4.stat.ncsu.edu/~online/datasets/EDU01b.csv", survey_stat_name = "enrollment_count")
+county_data <- process_census_data(url = "https://www4.stat.ncsu.edu/~online/datasets/EDU01a.csv",  survey_stat_name = "enrollment_count")
+state_data <- process_census_data(url = "https://www4.stat.ncsu.edu/~online/datasets/EDU01b.csv", survey_stat_name = "enrollment_count")
 
 #Combine the two lists together
-census <- combine_census_data(list1, list2)
+census <- combine_census_data(county_data, state_data)
 ```
 
 Let's do a quick sort and take a look at some of the data to see if everything looks okay.
@@ -348,34 +349,53 @@ We will start by plotting the data based on state as the location. Our plan is t
 
 ```{r}
 #make function as directed
-plot.state <- function(df, var_name="enrollment_count") { 
+plot.state <- function(tib, var_name="enrollment_count") { 
   
-df |> #inputting our intended data frame
+#creating an object to change y axis based on var_name
+y_label <- paste("Mean", gsub("_", " ", var_name))
+  
+tib |> #inputting our intended data frame
     filter(division != "ERROR") |>  #removing error values from division
     group_by(year, division) |>  #grouping by year then divison
-    summarise(mean_value = mean(get(var_name), na.rm=T), .groups ="drop")  |> #getting mean of                                                                                           #enrollment count
-    ggplot(aes(x=year, y=mean_value, color=division)) + #aesthetics of plot, followed by a line plot
-    geom_line() 
+    #getting mean of the variable from var_name
+    summarise(mean_value = mean(get(var_name), na.rm=T), .groups ="drop")  |>
+    ggplot(aes(x=year, y=mean_value, color=division)) + 
+    #aesthetics of plot, followed by a line plot
+    geom_line() +
+    labs(x= "Year",
+         y = y_label,
+         title = "Census Data by Division") +
+    scale_color_discrete("Division")
   
 }
 ```
 
 ```{r}
-#Making sure function is working
+#Making sure function is working - REMOVE FROM FINAL REPORT
 plot.state(census[[2]],var_name = "enrollment_count")
 ```
 
-Next we are going to create a plotting function for the `county` level data. The goal of this function will be for the user to be able to input the state of interest (with a default value if not specified), determine whether to 'top' or bottom most counties are the target (default of 'top'), and finally an instruction to determine how many of the 'top' or bottom most counties should be investigated (default of 5).
+Next we are going to create a plotting function for the `county` level data. The goal of this function will be for the user to be able to input a state of interest using the 2-letter abbreviated (the default value is NC), determine whether the `top` or `bottom` most counties are the target (default of `top`), and finally an instruction to determine how many of the 'top' or bottom most counties should be investigated (default of 5).
 
 ```{r}
 
-plot.county <- function(df, var_name = "enrollment_count", 
+plot.county <- function(tib, var_name = "enrollment_count", 
                         state.name="NC", 
                         top_bottom = "top", 
                         n_counties = 5) {
   
+#creating an object to change y axis based on var_name
+y_label <- paste("Mean", gsub("_", " ", var_name))
+
+#creating an object to change title based on inputs
+plot_title <- paste("Census Data from",
+                    top_bottom, 
+                    n_counties, 
+                    "Counties in",
+                    state.name)
+  
 #filter data by state
-state_data <- df |> 
+state_data <- tib |> 
   filter(state == state.name)
 
 #calculate mean of the chosen variable (default enrollment_count) for each county. 
@@ -404,12 +424,18 @@ plot_data <- state_data |>
 
 #Plot the values
 ggplot(plot_data, aes(x = year, y= get(var_name), color = county)) +
-         geom_line()
+         geom_line() +
+         labs(x= "Year",
+              y = y_label,
+              title = plot_title) +
+         scale_color_discrete("County") +
+         guides(color= guide_legend(ncol = 2))
 
 }
 ```
 
 ```{r}
+#REMOVE FROM FINAL REPORT
 plot.county(census[[1]],var_name = "enrollment_count", 
                         state.name="WA", 
                         top_bottom = "bottom", 
@@ -417,3 +443,69 @@ plot.county(census[[1]],var_name = "enrollment_count",
 
 
 ```
+
+## Demonstrating our Functions to Put it Together
+
+We are now going to put all of our functions together to test their use. 
+
+The first iteration will be using the initial data we used to create the functions. The first step is to process the data utilizing the `enrollment data` column. We will then combine the 2 data frames to make 1 list. 
+
+```{r}
+#processing the data using the 2 data sets with our function
+county_data <- process_census_data(url = "https://www4.stat.ncsu.edu/~online/datasets/EDU01a.csv",  survey_stat_name = "enrollment_count")
+state_data <- process_census_data(url = "https://www4.stat.ncsu.edu/~online/datasets/EDU01b.csv", survey_stat_name = "enrollment_count")
+
+#using our function to make a list with the 2 data sets
+census <- combine_census_data(county_data, state_data)
+
+#indexing to display the first 15 values of the county data
+census[[1]] |> 
+  head(n=15)
+
+#indexing to display the last 15 values of the state data to avoid `ERROR` in `division`
+census[[2]] |> 
+  tail(n=15)
+```
+Next we are going to test out our plotting function for the state data frame.
+
+```{r}
+plot.state(census[[2]],var_name = "enrollment_count")
+```
+
+Finally, let's test out multiple inputs using our county data. 
+
+1. Let's look at the state of "NC" and the top 20 counties for enrollment data
+
+```{r}
+plot.county(census[[1]],var_name = "enrollment_count", 
+                        state.name="NC", 
+                        top_bottom = "top", 
+                        n_counties = 20)
+```
+
+2. Let's look at the state of "SC" and the bottom 7 counties for enrollment data
+
+```{r}
+plot.county(census[[1]],var_name = "enrollment_count", 
+                        state.name="SC", 
+                        top_bottom = "bottom", 
+                        n_counties = 7)
+```
+
+3. Let's now look at whether our defaults are working. To reference back, we chose a default state of "NC" with the top 5 counties
+
+```{r}
+plot.county(census[[1]])
+```
+
+4. Finally, let's look at the state of "PA" and the top 8 counties for enrollment data
+
+```{r}
+plot.county(census[[1]],var_name = "enrollment_count", 
+                        state.name="PA", 
+                        top_bottom = "top", 
+                        n_counties = 8)
+```
+
+Looks like so far our functions are performing as desired!
+
