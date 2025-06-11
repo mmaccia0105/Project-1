@@ -341,3 +341,79 @@ census[[2]] |>
 ```
 
 Looks good here, too. Now that we have a way to easily process the data we are looking for, it's time to start thinking about how we are going to summarize and analyze it.
+
+## Using Functions to Summarize Data
+
+We will start by plotting the data based on state as the location. Our plan is to create a function that plots the mean value of `enrollment count` across the years for each `Division`.
+
+```{r}
+#make function as directed
+plot.state <- function(df, var_name="enrollment_count") { 
+  
+df |> #inputting our intended data frame
+    filter(division != "ERROR") |>  #removing error values from division
+    group_by(year, division) |>  #grouping by year then divison
+    summarise(mean_value = mean(get(var_name), na.rm=T), .groups ="drop")  |> #getting mean of                                                                                           #enrollment count
+    ggplot(aes(x=year, y=mean_value, color=division)) + #aesthetics of plot, followed by a line plot
+    geom_line() 
+  
+}
+```
+
+```{r}
+#Making sure function is working
+plot.state(census[[2]],var_name = "enrollment_count")
+```
+
+Next we are going to create a plotting function for the `county` level data. The goal of this function will be for the user to be able to input the state of interest (with a default value if not specified), determine whether to 'top' or bottom most counties are the target (default of 'top'), and finally an instruction to determine how many of the 'top' or bottom most counties should be investigated (default of 5).
+
+```{r}
+
+plot.county <- function(df, var_name = "enrollment_count", 
+                        state.name="NC", 
+                        top_bottom = "top", 
+                        n_counties = 5) {
+  
+#filter data by state
+state_data <- df |> 
+  filter(state == state.name)
+
+#calculate mean of the chosen variable (default enrollment_count) for each county. 
+county_means <- state_data |> 
+  group_by(county) |> 
+  summarise(mean_var_name = mean(get(var_name), na.rm=TRUE), .groups="drop")
+
+#using the mean value, sort base on if top or bottom is requested
+#then slice based on number of counties requested
+sorted_county_means <- if (top_bottom == "top") {
+  county_means |> 
+    arrange(desc(mean_var_name))
+      } else {
+  county_means |> 
+    arrange(mean_var_name) 
+  } 
+
+#pull out counties based on chosen rank and n
+selected_counties <- sorted_county_means |>  
+  slice_head (n = n_counties) |> 
+  pull (county)
+
+#Use initial data then filter from the subset after calculating means
+plot_data <- state_data |> 
+  filter(county %in% selected_counties)
+
+#Plot the values
+ggplot(plot_data, aes(x = year, y= get(var_name), color = county)) +
+         geom_line()
+
+}
+```
+
+```{r}
+plot.county(census[[1]],var_name = "enrollment_count", 
+                        state.name="WA", 
+                        top_bottom = "bottom", 
+                        n_counties = 4)
+
+
+```
