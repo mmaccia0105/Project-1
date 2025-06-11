@@ -220,7 +220,7 @@ parse_survey_ID <- function(tib) {
          survey_ID = substr(survey_ID, 1, 7)) |>
   #Add 1900 (or 2000) to the year column to get the YYYY instead of YY
   mutate(year = case_when(
-    as.numeric(year) >= 87 ~ 1900 + as.numeric(year),
+    as.numeric(year) >= 26 ~ 1900 + as.numeric(year),
     .default = 2000 + as.numeric(year)
     )
   )
@@ -316,18 +316,18 @@ Now that we've written our functions, all that's left to do is call them. If eve
 
 ```{r}
 #Call the functions we just made!
-county_data <- process_census_data(url = "https://www4.stat.ncsu.edu/~online/datasets/EDU01a.csv",  survey_stat_name = "enrollment_count")
-state_data <- process_census_data(url = "https://www4.stat.ncsu.edu/~online/datasets/EDU01b.csv", survey_stat_name = "enrollment_count")
+county_data_test <- process_census_data(url = "https://www4.stat.ncsu.edu/~online/datasets/EDU01a.csv",  survey_stat_name = "enrollment_count")
+state_data_test <- process_census_data(url = "https://www4.stat.ncsu.edu/~online/datasets/EDU01b.csv", survey_stat_name = "enrollment_count")
 
 #Combine the two lists together
-census <- combine_census_data(county_data, state_data)
+census_test <- combine_census_data(county_data_test, state_data_test)
 ```
 
 Let's do a quick sort and take a look at some of the data to see if everything looks okay.
 
 ```{r}
 #View results
-census[[1]] |>
+census_test[[1]] |>
   arrange(county, year) |>
   head(n = 20)
 ```
@@ -336,7 +336,7 @@ Looks good on the county side. Let's check the non-counties as well.
 
 ```{r}
 #View results, from the end this time for the sake of it.
-census[[2]] |>
+census_test[[2]] |>
   arrange(division, area_name, year) |>
   tail(n = 20)
 ```
@@ -372,7 +372,7 @@ tib |> #inputting our intended data frame
 
 ```{r}
 #Making sure function is working - REMOVE FROM FINAL REPORT
-plot.state(census[[2]],var_name = "enrollment_count")
+plot.state(census_test[[2]],var_name = "enrollment_count")
 ```
 
 Next we are going to create a plotting function for the `county` level data. The goal of this function will be for the user to be able to input a state of interest using the 2-letter abbreviated (the default value is NC), determine whether the `top` or `bottom` most counties are the target (default of `top`), and finally an instruction to determine how many of the 'top' or bottom most counties should be investigated (default of 5).
@@ -436,7 +436,7 @@ ggplot(plot_data, aes(x = year, y= get(var_name), color = county)) +
 
 ```{r}
 #REMOVE FROM FINAL REPORT
-plot.county(census[[1]],var_name = "enrollment_count", 
+plot.county(census_test[[1]],var_name = "enrollment_count", 
                         state.name="WA", 
                         top_bottom = "bottom", 
                         n_counties = 4)
@@ -508,4 +508,73 @@ plot.county(census[[1]],var_name = "enrollment_count",
 ```
 
 Looks like so far our functions are performing as desired!
+
+Now let's utilize different data sets to apply our functions. 
+
+```{r}
+#run the data processing function for each dataset
+data_pst01a <- process_census_data(url = "http://www4.stat.ncsu.edu/~online/datasets/PST01a.csv",  survey_stat_name = "enrollment_count")
+
+data_pst01b <- process_census_data(url = "http://www4.stat.ncsu.edu/~online/datasets/PST01b.csv",  survey_stat_name = "enrollment_count")
+
+data_pst01c <- process_census_data(url = "http://www4.stat.ncsu.edu/~online/datasets/PST01c.csv",  survey_stat_name = "enrollment_count")
+
+data_pst01d <- process_census_data(url = "http://www4.stat.ncsu.edu/~online/datasets/PST01d.csv",  survey_stat_name = "enrollment_count")
+
+#now we need to run our data combining function 3 times to get our desired list that contains 2
+#tibbles, 1 for county data and 1 for state data
+
+census_pst_ab <- combine_census_data(data_pst01a, data_pst01b)
+
+census_pst_abc <- combine_census_data(census_pst_ab, data_pst01c)
+
+census_pst_abcd <- combine_census_data(census_pst_abc, data_pst01d)
+
+#indexing to display the first 15 values of the county data
+census_pst_abcd[[1]] |> 
+  head(n=15)
+
+#indexing to display the last 15 values of the state data to avoid `ERROR` in `division`
+census_pst_abcd[[2]] |> 
+  tail(n=15)
+```
+It looks like this data is older than our previous data. The year of the surveys ranges from `r min(census_pst_abcd[[1]]$year)` to `r max(census_pst_abcd[[1]]$year)`. Additionally, this is from a different survey, with a prefix of PST. Now that we read in the 4 data sets and combined them, separating out the `county` and `state` data, let's make some plots. 
+
+Our first plot will contain our data from our `state` data. 
+
+```{r}
+plot.state(census_pst_abcd[[2]],var_name = "enrollment_count")
+
+```
+Now we are going to run some plots utilizing our `county` data
+
+1. Here is the data from California with the top 15 counties of enrollment means
+
+```{r}
+plot.county(census_pst_abcd[[1]],var_name = "enrollment_count", 
+                        state.name="CA", 
+                        top_bottom = "top", 
+                        n_counties = 15)
+```
+2. Next, let's look at the top 4 counties from Texas
+
+```{r}
+plot.county(census_pst_abcd[[1]],var_name = "enrollment_count", 
+                        state.name="TX", 
+                        top_bottom = "top", 
+                        n_counties = 4)
+```
+3. Here is the plot using our defaults in our plotting function. To reference back, we chose a default state of "NC" with the top 5 counties
+
+```{r}
+plot.county(census_pst_abcd[[1]])
+```
+4. Finally, we are going to look at the top 10 counties, based on enrollment mean, from New York
+
+```{r}
+plot.county(census_pst_abcd[[1]],var_name = "enrollment_count", 
+                        state.name="NY", 
+                        top_bottom = "top", 
+                        n_counties = 10)
+```
 
