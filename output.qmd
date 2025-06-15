@@ -375,7 +375,7 @@ tib |> #inputting our intended data frame
 }
 ```
 
-Next we are going to create a plotting function for the `county` level data. The goal of this function will be for the user to be able to input a state of interest using the 2-letter abbreviated (the default value is NC), determine whether the `top` or `bottom` most counties are the target (default of `top`), and finally an instruction to determine how many of the 'top' or bottom most counties should be investigated (default of 5).
+Next we are going to create a plotting function for the `county` level data. The goal of this function will be for the user to be able to input a state of interest using the 2-letter abbreviation (the default value is NC), determine whether the `top` or `bottom` most counties are the target (default of `top`), and finally an instruction to determine how many of the 'top' or bottom most counties should be investigated (default of 5).
 
 ```{r}
 
@@ -524,8 +524,8 @@ data_pst01d <- process_census_data(url =
                  "http://www4.stat.ncsu.edu/~online/datasets/PST01d.csv",  
                  survey_stat_name = "population")
 
-#now we need to run our data combining function 3 times to get our desired list that contains 2
-#tibbles, 1 for county data and 1 for state data
+#now we need to run our data combining function 3 times to get our 
+#desired list that contains 2 tibbles, 1 for county data and 1 for state data
 
 census_pst_ab <- combine_census_data(data_pst01a, data_pst01b)
 
@@ -551,7 +551,7 @@ plot.state(census_pst_abcd[[2]],var_name = "population")
 
 ```
 
-Now we are going to run some plots utilizing our `county` data
+Now we are going to run some plots utilizing our `county` data:
 
 1.  Here is the data from California with the top 15 counties of enrollment means
 
